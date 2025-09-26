@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Velha Mágico</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-container">
+        <div id="menu-inicial" class="screen">
+            <h1 class="title">Jogo da Velha Mágico</h1>
+            <p class="subtitle">Escolha a dificuldade para começar</p>
+            <div class="button-group">
+                <button class="btn btn-primary" data-dificuldade="facil">Fácil</button>
+                <button class="btn btn-primary" data-dificuldade="medio">Médio</button>
+                <button class="btn btn-primary" data-dificuldade="dificil">Difícil</button>
+            </div>
+            <button id="btn-ajuda" class="btn btn-secondary" style="margin-top: 15px;">Como Jogar?</button>
+        </div>
+
+        <div id="tela-ajuda" class="screen" style="display: none;">
+            <h1 class="title">Como Jogar</h1>
+            <div class="ajuda-conteudo">
+                <h2>Regras Básicas</h2>
+                <p>O objetivo é o mesmo do Jogo da Velha tradicional: conseguir 3 de seus símbolos em linha (horizontal, vertical ou diagonal).</p>
+                <h2>Cartas Mágicas</h2>
+                <p>No início de cada partida, você e a CPU recebem 2 cartas mágicas. Você pode usar <strong>uma carta por turno</strong>. Usar uma carta de ação (como Proteção ou Limpeza) não consome sua jogada no tabuleiro.</p>
+                <p>Para usar uma carta, clique nela para virar e depois clique no botão "Usar Carta".</p>
+                <h2>Lista de Cartas</h2>
+                <div id="ajuda-lista-cartas" class="ajuda-cartas-grid">
+                </div>
+            </div>
+            <button id="btn-voltar-ajuda" class="btn btn-primary">Voltar</button>
+        </div>
+
+        <div id="game-container" class="screen" style="display: none;">
+            <div class="header">
+                <div id="placar" class="score-board">
+                    Placar: <span id="placarX">0</span> x <span id="placarO">0</span> | Empates: <span id="placarE">0</span>
+                </div>
+                <button id="voltar-menu" class="btn btn-secondary">Voltar</button>
+            </div>
+
+            <div class="game-main">
+                <div class="player-info">
+                    <h2 class="player-label">Jogador X</h2>
+                    <div class="cards-wrapper">
+                        <div id="cartaJogador1" class="card-container">
+                            <div class="card">
+                                <div class="card-front">
+                                    <span id="carta-nome-Jogador1"></span>
+                                </div>
+                                <div class="card-back">
+                                    <h3 id="carta-nome-Jogador1-back"></h3>
+                                    <p id="carta-desc-Jogador1"></p>
+                                    <button id="btnUsarCarta1" class="btn btn-use-card">Usar Carta</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cartaJogador2" class="card-container">
+                            <div class="card">
+                                <div class="card-front">
+                                    <span id="carta-nome-Jogador2"></span>
+                                </div>
+                                <div class="card-back">
+                                    <h3 id="carta-nome-Jogador2-back"></h3>
+                                    <p id="carta-desc-Jogador2"></p>
+                                    <button id="btnUsarCarta2" class="btn btn-use-card">Usar Carta</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="board-wrapper">
+                    <div class="game-info">
+                        <h2 id="info">Vez do jogador X</h2>
+                        <div id="historico-efeito" class="effect-history"><span>Último Efeito:</span> Nenhuma</div>
+                    </div>
+                    <div class="tabuleiro"></div>
+                    
+                    <div id="end-game-controls" class="button-group" style="display: none; margin-top: 20px;">
+                        <button id="proximaRodada" class="btn btn-primary">Próxima Rodada</button>
+                        <button id="voltarMenuModal" class="btn btn-secondary">Voltar ao Menu</button>
+                    </div>
+                </div>
+                
+                <div class="player-info">
+                    <h2 class="player-label">CPU O</h2>
+                    <div class="cards-wrapper">
+                        <div id="cartaCPU1" class="card-container">
+                            <div class="card">
+                                <div class="card-front">
+                                    <span id="carta-nome-CPU1"></span>
+                                </div>
+                                <div class="card-back">
+                                    <h3 id="carta-nome-CPU1-back"></h3>
+                                    <p id="carta-desc-CPU1"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cartaCPU2" class="card-container">
+                            <div class="card">
+                                <div class="card-front">
+                                    <span id="carta-nome-CPU2"></span>
+                                </div>
+                                <div class="card-back">
+                                    <h3 id="carta-nome-CPU2-back"></h3>
+                                    <p id="carta-desc-CPU2"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="history-log-container">
+                        <h3 class="history-title">Histórico</h3>
+                        <div id="history-log" class="history-log-box">
+                            <p>Partida iniciada...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="audio-container" style="display: none;">
+        <audio id="som-jogada" src="sons/som-jogada.mp3"></audio>
+        <audio id="som-carta" src="sons/som-carta.mp3"></audio>
+        <audio id="som-vitoria" src="sons/som-vitoria.mp3"></audio>
+        <audio id="som-derrota" src="sons/som-derrota.mp3"></audio>
+    </div>
+
+    <script src="cards.js"></script>
+    <script src="ia.js"></script>
+    <script src="ui.js"></script>
+    <script src="game.js"></script>
+    
+    <script>
+    window.onload = function() {
+        console.log("Página totalmente carregada e pronta!");
+        if (typeof initUI === 'function') {
+            initUI();
+        } else {
+            console.error("A função initUI() não foi encontrada!");
+        }
+    };
+    </script>
+</body>
+</html>
