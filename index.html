@@ -10,13 +10,34 @@
     <div id="app-container">
         <div id="menu-inicial" class="screen">
             <h1 class="title">Jogo da Velha Mágico</h1>
-            <p class="subtitle">Escolha a dificuldade para começar</p>
+            <p class="subtitle">Escolha um modo para começar</p>
+            <div class="button-group">
+                <button id="btn-iniciar-magico" class="btn btn-primary">Modo Mágico</button>
+                <button id="btn-iniciar-classico" class="btn btn-primary">Modo Clássico</button>
+            </div>
+            <div class="button-group" style="margin-top: 20px;">
+                <button id="btn-ajuda" class="btn btn-secondary">Como Jogar?</button>
+                <button id="btn-config" class="btn btn-secondary">Configurações</button>
+            </div>
+        </div>
+
+        <div id="tela-dificuldade" class="screen" style="display: none;">
+            <h1 class="title">Modo Mágico</h1>
+            <p class="subtitle">Escolha a dificuldade</p>
             <div class="button-group">
                 <button class="btn btn-primary" data-dificuldade="facil">Fácil</button>
                 <button class="btn btn-primary" data-dificuldade="medio">Médio</button>
                 <button class="btn btn-primary" data-dificuldade="dificil">Difícil</button>
             </div>
-            <button id="btn-ajuda" class="btn btn-secondary" style="margin-top: 15px;">Como Jogar?</button>
+            <button id="btn-voltar-dificuldade" class="btn btn-secondary" style="margin-top: 15px;">Voltar</button>
+        </div>
+
+        <div id="tela-config" class="screen" style="display: none;">
+            <h1 class="title">Configurações</h1>
+            <div class="config-conteudo">
+                <p>Em breve mais opções!</p>
+            </div>
+            <button id="btn-voltar-config" class="btn btn-primary">Voltar</button>
         </div>
 
         <div id="tela-ajuda" class="screen" style="display: none;">

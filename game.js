@@ -5,6 +5,7 @@ console.log("game.js carregado com sucesso!");
 const gameState = {
     currentPlayer: 'X',
     primeiraPartida: true,
+    modoDeJogo: 'magico',
     forcedMoveIndex: null,
     bloqueioMode: false,
     bloqueioAlvo: null,
@@ -12,7 +13,7 @@ const gameState = {
     limparMode: false,
     placar: { X: 0, O: 0, E: 0 },
     protecaoIndex: null,
-    protecaoExpiraPara: null, // Substitui o contador de turnos
+    protecaoExpiraPara: null,
     nivelDificuldade: 'facil',
     cartasJogador: [],
     cartasCPU: [],
@@ -26,22 +27,32 @@ window.resetPlacar = function() {
     updatePlacar(gameState.placar);
 };
 
-window.iniciarJogo = function(dificuldade) {
+window.iniciarJogo = function(dificuldade, modo = 'magico') {
+    // A ordem aqui é crucial: primeiro reseta, depois define as novas configurações.
+    resetGame();
+    
     gameState.nivelDificuldade = dificuldade;
+    gameState.modoDeJogo = modo;
+    
+    document.getElementById('tela-dificuldade').style.display = 'none';
     document.getElementById('menu-inicial').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
     
-    resetGame();
     initBoard();
 
-    gameState.cartasJogador.push(sortearCarta(), sortearCarta());
-    gameState.cartasCPU.push(sortearCarta(), sortearCarta());
+    if (gameState.modoDeJogo === 'magico') {
+        mostrarPaineisDeCartas(true);
+        gameState.cartasJogador.push(sortearCarta(), sortearCarta());
+        gameState.cartasCPU.push(sortearCarta(), sortearCarta());
 
-    for (let i = 0; i < 2; i++) {
-        updateCardInfo(i + 1, 'Jogador', gameState.cartasJogador[i].nome, gameState.cartasJogador[i].desc);
-        updateCardInfo(i + 1, 'CPU', gameState.cartasCPU[i].nome, gameState.cartasCPU[i].desc);
-        document.getElementById(`cartaJogador${i+1}`).className = `card-container ${gameState.cartasJogador[i].raridade}`;
-        document.getElementById(`cartaCPU${i+1}`).className = `card-container ${gameState.cartasCPU[i].raridade}`;
+        for (let i = 0; i < 2; i++) {
+            updateCardInfo(i + 1, 'Jogador', gameState.cartasJogador[i].nome, gameState.cartasJogador[i].desc);
+            updateCardInfo(i + 1, 'CPU', gameState.cartasCPU[i].nome, gameState.cartasCPU[i].desc);
+            document.getElementById(`cartaJogador${i+1}`).className = `card-container ${gameState.cartasJogador[i].raridade}`;
+            document.getElementById(`cartaCPU${i+1}`).className = `card-container ${gameState.cartasCPU[i].raridade}`;
+        }
+    } else {
+        mostrarPaineisDeCartas(false);
     }
 
     const tabuleiro = document.querySelector('.tabuleiro');
@@ -50,7 +61,7 @@ window.iniciarJogo = function(dificuldade) {
     const comecarPartida = () => {
         const startMessage = gameState.currentPlayer === 'X' ? 'Você começa!' : 'A CPU começa!';
         updateInfo(startMessage);
-        adicionarAoHistorico(`--- Nova Partida (${dificuldade}) ---`);
+        adicionarAoHistorico(`--- Nova Partida (${modo}, ${dificuldade}) ---`);
         adicionarAoHistorico(startMessage);
         
         setTimeout(() => {
@@ -78,13 +89,13 @@ window.iniciarJogo = function(dificuldade) {
 };
 
 window.continuar = function() {
-    iniciarJogo(gameState.nivelDificuldade);
+    iniciarJogo(gameState.nivelDificuldade, gameState.modoDeJogo);
 };
 
 window.voltarMenu = function() {
     resetGame();
-    document.getElementById('menu-inicial').style.display = 'flex';
     document.getElementById('game-container').style.display = 'none';
+    document.getElementById('menu-inicial').style.display = 'flex';
     updatePlacar(gameState.placar);
 };
 
@@ -141,50 +152,56 @@ window.handleCellClick = function(idx) {
     const cells = document.querySelectorAll('.cell');
     if (gameState.currentPlayer === 'O') return;
 
-    if (gameState.limparMode) {
-        if (cells[idx].textContent.trim() === 'O') {
-            cells[idx].innerHTML = '';
-            gameState.limparMode = false;
-            updateInfo('Peça removida! Agora, faça a sua jogada.');
-            adicionarAoHistorico(`Jogador usou Limpeza de Campo na casa #${idx + 1}.`);
-        } else {
-            updateInfo('Escolha uma PEÇA DO OPONENTE para remover!');
+    if (gameState.modoDeJogo === 'magico') {
+        if (gameState.limparMode) {
+            if (cells[idx].textContent.trim() === 'O') {
+                cells[idx].innerHTML = '';
+                gameState.limparMode = false;
+                updateInfo('Peça removida! Agora, faça a sua jogada.');
+                adicionarAoHistorico(`Jogador usou Limpeza de Campo na casa #${idx + 1}.`);
+            } else {
+                updateInfo('Escolha uma PEÇA DO OPONENTE para remover!');
+            }
+            return;
         }
-        return;
-    }
 
-    if (gameState.protecaoMode) {
-        if (!cells[idx].textContent) {
-            cells[idx].classList.add('protected');
-            gameState.protecaoIndex = idx;
-            gameState.protecaoExpiraPara = gameState.currentPlayer;
-            gameState.protecaoMode = false;
-            updateInfo('Casa protegida! Agora, faça a sua jogada.');
-            adicionarAoHistorico(`Jogador usou Proteção Divina na casa #${idx + 1}.`);
-        } else {
-            updateInfo('Escolha uma casa VAZIA para proteger!');
+        if (gameState.protecaoMode) {
+            if (!cells[idx].textContent) {
+                cells[idx].classList.add('protected');
+                gameState.protecaoIndex = idx;
+                gameState.protecaoExpiraPara = gameState.currentPlayer;
+                gameState.protecaoMode = false;
+                updateInfo('Casa protegida! Agora, faça a sua jogada.');
+                adicionarAoHistorico(`Jogador usou Proteção Divina na casa #${idx + 1}.`);
+            } else {
+                updateInfo('Escolha uma casa VAZIA para proteger!');
+            }
+            return;
         }
-        return;
+        
+        if (gameState.bloqueioMode) {
+            if (!cells[idx].textContent) {
+                cells[idx].classList.add('forced-move');
+                gameState.forcedMoveIndex = idx;
+                gameState.bloqueioMode = false;
+                updateInfo('Casa forçada selecionada. Agora, faça a sua jogada.');
+                adicionarAoHistorico(`Jogador usou Jogada Forçada na casa #${idx + 1}.`);
+            } else {
+                updateInfo('Escolha uma casa VAZIA para forçar a jogada da CPU!');
+            }
+            return;
+        }
+
+        if (gameState.bloqueioAlvo === 'jogador' && idx !== gameState.forcedMoveIndex) {
+            return updateInfo('Sua jogada foi forçada! Jogue na casa destacada.');
+        }
+        
+        if ((gameState.bloqueioAlvo === 'cpu' && idx === gameState.forcedMoveIndex)) {
+            return updateInfo('Casa inválida!');
+        }
     }
     
-    if (gameState.bloqueioMode) {
-        if (!cells[idx].textContent) {
-            cells[idx].classList.add('forced-move');
-            gameState.forcedMoveIndex = idx;
-            gameState.bloqueioMode = false;
-            updateInfo('Casa forçada selecionada. Agora, faça a sua jogada.');
-            adicionarAoHistorico(`Jogador usou Jogada Forçada na casa #${idx + 1}.`);
-        } else {
-            updateInfo('Escolha uma casa VAZIA para forçar a jogada da CPU!');
-        }
-        return;
-    }
-
-    if (gameState.bloqueioAlvo === 'jogador' && idx !== gameState.forcedMoveIndex) {
-        return updateInfo('Sua jogada foi forçada! Jogue na casa destacada.');
-    }
-    
-    if (cells[idx].textContent || (gameState.bloqueioAlvo === 'cpu' && idx === gameState.forcedMoveIndex) || cells[idx].classList.contains('protected')) {
+    if (cells[idx].textContent || cells[idx].classList.contains('protected')) {
         return updateInfo('Casa inválida!');
     }
 
@@ -192,7 +209,7 @@ window.handleCellClick = function(idx) {
     adicionarAoHistorico(`Jogador X jogou na casa #${idx + 1}.`);
     tocarSom('som-jogada');
 
-    if (gameState.bloqueioAlvo === 'jogador') {
+    if (gameState.modoDeJogo === 'magico' && gameState.bloqueioAlvo === 'jogador') {
         cells[gameState.forcedMoveIndex].classList.remove('forced-move');
         gameState.forcedMoveIndex = null;
         gameState.bloqueioAlvo = null;
@@ -215,7 +232,9 @@ function nextTurn() {
     gameState.currentPlayer = player === 'X' ? 'O' : 'X';
     gameState.cartaUsadaNoTurno = false;
     
-    verificarExpiracaoEfeitos(); // Verifica expiração no início do novo turno
+    if (gameState.modoDeJogo === 'magico') {
+        verificarExpiracaoEfeitos();
+    }
     
     updateInfo(`Vez do jogador ${gameState.currentPlayer}`);
 
@@ -225,7 +244,9 @@ function nextTurn() {
         setTimeout(turnoCPU, 1000);
     } else {
         tabuleiro.style.pointerEvents = 'auto';
-        toggleAllPlayerButtons();
+        if (gameState.modoDeJogo === 'magico') {
+            toggleAllPlayerButtons();
+        }
     }
 }
 
@@ -245,7 +266,7 @@ function turnoCPU() {
         nextTurn();
     };
 
-    if (gameState.bloqueioAlvo === 'cpu' && gameState.forcedMoveIndex !== null) {
+    if (gameState.modoDeJogo === 'magico' && gameState.bloqueioAlvo === 'cpu' && gameState.forcedMoveIndex !== null) {
         jogada = gameState.forcedMoveIndex;
         cells[jogada].classList.remove('forced-move');
         gameState.forcedMoveIndex = null;
@@ -255,36 +276,38 @@ function turnoCPU() {
     }
 
     let usouCarta = false;
-    const chanceDeUsarCarta = { facil: 0.2, medio: 0.6, dificil: 1.0 };
-    if (!gameState.cartaUsadaNoTurno && Math.random() < chanceDeUsarCarta[gameState.nivelDificuldade]) {
-        const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board);
-        if (melhorJogadaDeCarta) {
-            const { carta, cardIndex, targetCell } = melhorJogadaDeCarta;
-            usouCarta = true;
-            
-            updateInfo(`CPU usou ${carta.nome}!`);
-            adicionarAoHistorico(`CPU usou ${carta.nome}!`);
-            
-            switch(carta.tipo) {
-                case 'limpar':
-                    cells[targetCell].innerHTML = '';
-                    break;
-                case 'protecao':
-                    cells[targetCell].classList.add('protected');
-                    gameState.protecaoIndex = targetCell;
-                    gameState.protecaoExpiraPara = 'O';
-                    break;
-                case 'forcar':
-                    cells[targetCell].classList.add('forced-move');
-                    gameState.bloqueioAlvo = 'jogador';
-                    gameState.forcedMoveIndex = targetCell;
-                    break;
+    if (gameState.modoDeJogo === 'magico') {
+        const chanceDeUsarCarta = { facil: 0.2, medio: 0.6, dificil: 1.0 };
+        if (!gameState.cartaUsadaNoTurno && Math.random() < chanceDeUsarCarta[gameState.nivelDificuldade]) {
+            const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board);
+            if (melhorJogadaDeCarta) {
+                const { carta, cardIndex, targetCell } = melhorJogadaDeCarta;
+                usouCarta = true;
+                
+                updateInfo(`CPU usou ${carta.nome}!`);
+                adicionarAoHistorico(`CPU usou ${carta.nome}!`);
+                
+                switch(carta.tipo) {
+                    case 'limpar':
+                        cells[targetCell].innerHTML = '';
+                        break;
+                    case 'protecao':
+                        cells[targetCell].classList.add('protected');
+                        gameState.protecaoIndex = targetCell;
+                        gameState.protecaoExpiraPara = 'O';
+                        break;
+                    case 'forcar':
+                        cells[targetCell].classList.add('forced-move');
+                        gameState.bloqueioAlvo = 'jogador';
+                        gameState.forcedMoveIndex = targetCell;
+                        break;
+                }
+                
+                gameState.usada.cpu[cardIndex] = true;
+                gameState.cartaUsadaNoTurno = true;
+                flipCard('CPU', cardIndex + 1);
+                board = Array.from(cells).map(c => c.textContent.trim());
             }
-            
-            gameState.usada.cpu[cardIndex] = true;
-            gameState.cartaUsadaNoTurno = true;
-            flipCard('CPU', cardIndex + 1);
-            board = Array.from(cells).map(c => c.textContent.trim());
         }
     }
     
@@ -316,6 +339,7 @@ function resetGame() {
     Object.assign(gameState, {
         currentPlayer: 'X',
         primeiraPartida: gameState.primeiraPartida,
+        modoDeJogo: 'magico',
         forcedMoveIndex: null,
         bloqueioMode: false,
         bloqueioAlvo: null,

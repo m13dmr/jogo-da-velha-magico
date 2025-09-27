@@ -38,7 +38,6 @@ body {
     text-align: center;
 }
 
-/* LÓGICA DE TELAS RESTAURADA PARA O MODO SIMPLES E FUNCIONAL */
 .screen {
     display: flex;
     flex-direction: column;
@@ -193,6 +192,7 @@ body {
 .cell .player-X { color: var(--secondary-color); }
 .cell .player-O { color: #f9a32c; }
 
+
 .cell.protected { 
     background-color: #28a745 !important; 
     box-shadow: 0 0 15px #28a745;
@@ -251,8 +251,6 @@ body {
     margin: 0;
 }
 
-/* >>>>> CORREÇÃO DO EFEITO DE ZOOM/BLUR <<<<< */
-/* O zoom agora só se aplica ao .card interno, e somente quando ele NÃO estiver virado */
 .card-container:hover .card:not(.flipped) {
     transform: scale(1.05);
 }
@@ -393,8 +391,8 @@ body {
     z-index: 1000;
 }
 
-/* Estilos para a Tela de Ajuda */
-.ajuda-conteudo {
+/* Estilos para Telas de Ajuda e Configurações */
+.ajuda-conteudo, .config-conteudo {
     text-align: left;
     max-width: 600px;
     background: var(--bg-color);
