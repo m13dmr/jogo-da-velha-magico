@@ -12,7 +12,7 @@ const gameState = {
     limparMode: false,
     placar: { X: 0, O: 0, E: 0 },
     protecaoIndex: null,
-    protecaoTurnos: 0,
+    protecaoExpiraPara: null, // Substitui o contador de turnos
     nivelDificuldade: 'facil',
     cartasJogador: [],
     cartasCPU: [],
@@ -128,14 +128,12 @@ function endGame(msg, winLine = null) {
     document.querySelector('.tabuleiro').style.pointerEvents = 'none';
 }
 
-function decrementarEfeitos() {
-    if (gameState.protecaoIndex !== null && gameState.protecaoTurnos > 0) {
-        gameState.protecaoTurnos--;
-        if (gameState.protecaoTurnos === 0) {
-            document.querySelectorAll('.cell')[gameState.protecaoIndex].classList.remove('protected');
-            adicionarAoHistorico(`Proteção na casa #${gameState.protecaoIndex + 1} expirou.`);
-            gameState.protecaoIndex = null;
-        }
+function verificarExpiracaoEfeitos() {
+    if (gameState.protecaoIndex !== null && gameState.protecaoExpiraPara === gameState.currentPlayer) {
+        document.querySelectorAll('.cell')[gameState.protecaoIndex].classList.remove('protected');
+        adicionarAoHistorico(`Proteção na casa #${gameState.protecaoIndex + 1} expirou.`);
+        gameState.protecaoIndex = null;
+        gameState.protecaoExpiraPara = null;
     }
 }
 
@@ -143,61 +141,57 @@ window.handleCellClick = function(idx) {
     const cells = document.querySelectorAll('.cell');
     if (gameState.currentPlayer === 'O') return;
 
-    // ETAPA 1: O jogador está selecionando um alvo para uma carta?
-    if (gameState.limparMode || gameState.protecaoMode || gameState.bloqueioMode) {
-        if (gameState.limparMode) {
-            if (cells[idx].textContent.trim() === 'O') {
-                cells[idx].innerHTML = '';
-                gameState.limparMode = false;
-                updateInfo('Peça removida! Agora, faça a sua jogada.');
-                adicionarAoHistorico(`Jogador usou Limpeza de Campo na casa #${idx + 1}.`);
-            } else {
-                updateInfo('Escolha uma PEÇA DO OPONENTE para remover!');
-            }
-        } else if (gameState.protecaoMode) {
-            if (!cells[idx].textContent) {
-                cells[idx].classList.add('protected');
-                gameState.protecaoIndex = idx;
-                gameState.protecaoTurnos = 2;
-                gameState.protecaoMode = false;
-                updateInfo('Casa protegida! Agora, faça a sua jogada.');
-                adicionarAoHistorico(`Jogador usou Proteção Divina na casa #${idx + 1}.`);
-            } else {
-                updateInfo('Escolha uma casa VAZIA para proteger!');
-            }
-        } else if (gameState.bloqueioMode) {
-            if (!cells[idx].textContent) {
-                cells[idx].classList.add('forced-move');
-                gameState.forcedMoveIndex = idx;
-                gameState.bloqueioMode = false;
-                updateInfo('Casa forçada selecionada. Agora, faça a sua jogada.');
-                adicionarAoHistorico(`Jogador usou Jogada Forçada na casa #${idx + 1}.`);
-            } else {
-                updateInfo('Escolha uma casa VAZIA para forçar a jogada da CPU!');
-            }
+    if (gameState.limparMode) {
+        if (cells[idx].textContent.trim() === 'O') {
+            cells[idx].innerHTML = '';
+            gameState.limparMode = false;
+            updateInfo('Peça removida! Agora, faça a sua jogada.');
+            adicionarAoHistorico(`Jogador usou Limpeza de Campo na casa #${idx + 1}.`);
+        } else {
+            updateInfo('Escolha uma PEÇA DO OPONENTE para remover!');
         }
-        return; // Finaliza a função após a seleção de alvo.
+        return;
     }
 
-    // ETAPA 2: Se não, o jogador está tentando fazer uma jogada. Validar a jogada.
-    if (gameState.bloqueioAlvo === 'jogador') {
-        // Se o jogador está sendo forçado, ele SÓ pode jogar na casa marcada.
-        if (idx !== gameState.forcedMoveIndex) {
-            return updateInfo('Sua jogada foi forçada! Jogue na casa destacada.');
+    if (gameState.protecaoMode) {
+        if (!cells[idx].textContent) {
+            cells[idx].classList.add('protected');
+            gameState.protecaoIndex = idx;
+            gameState.protecaoExpiraPara = gameState.currentPlayer;
+            gameState.protecaoMode = false;
+            updateInfo('Casa protegida! Agora, faça a sua jogada.');
+            adicionarAoHistorico(`Jogador usou Proteção Divina na casa #${idx + 1}.`);
+        } else {
+            updateInfo('Escolha uma casa VAZIA para proteger!');
         }
-    } else {
-        // Se o jogador está fazendo uma jogada normal, ele não pode jogar em casas especiais.
-        if (cells[idx].textContent) return updateInfo('Casa já ocupada!');
-        if (cells[idx].classList.contains('protected')) return updateInfo('Esta casa está protegida!');
-        if (idx === gameState.forcedMoveIndex) return updateInfo('Esta casa está reservada para a CPU!');
+        return;
+    }
+    
+    if (gameState.bloqueioMode) {
+        if (!cells[idx].textContent) {
+            cells[idx].classList.add('forced-move');
+            gameState.forcedMoveIndex = idx;
+            gameState.bloqueioMode = false;
+            updateInfo('Casa forçada selecionada. Agora, faça a sua jogada.');
+            adicionarAoHistorico(`Jogador usou Jogada Forçada na casa #${idx + 1}.`);
+        } else {
+            updateInfo('Escolha uma casa VAZIA para forçar a jogada da CPU!');
+        }
+        return;
     }
 
-    // ETAPA 3: Executar a jogada
+    if (gameState.bloqueioAlvo === 'jogador' && idx !== gameState.forcedMoveIndex) {
+        return updateInfo('Sua jogada foi forçada! Jogue na casa destacada.');
+    }
+    
+    if (cells[idx].textContent || (gameState.bloqueioAlvo === 'cpu' && idx === gameState.forcedMoveIndex) || cells[idx].classList.contains('protected')) {
+        return updateInfo('Casa inválida!');
+    }
+
     cells[idx].innerHTML = `<span class="player-X">X</span>`;
     adicionarAoHistorico(`Jogador X jogou na casa #${idx + 1}.`);
     tocarSom('som-jogada');
 
-    // Limpa o estado se o jogador acabou de cumprir uma jogada forçada.
     if (gameState.bloqueioAlvo === 'jogador') {
         cells[gameState.forcedMoveIndex].classList.remove('forced-move');
         gameState.forcedMoveIndex = null;
@@ -208,9 +202,8 @@ window.handleCellClick = function(idx) {
 };
 
 function nextTurn() {
-    decrementarEfeitos();
-
     const player = gameState.currentPlayer;
+    
     const winLine = checkWin(player);
     if (winLine) {
         return endGame(player === 'X' ? 'Jogador X venceu!' : 'CPU O venceu!', winLine);
@@ -221,6 +214,9 @@ function nextTurn() {
     
     gameState.currentPlayer = player === 'X' ? 'O' : 'X';
     gameState.cartaUsadaNoTurno = false;
+    
+    verificarExpiracaoEfeitos(); // Verifica expiração no início do novo turno
+    
     updateInfo(`Vez do jogador ${gameState.currentPlayer}`);
 
     const tabuleiro = document.querySelector('.tabuleiro');
@@ -237,7 +233,6 @@ function turnoCPU() {
     const cells = document.querySelectorAll('.cell');
     let board = Array.from(cells).map(c => c.textContent.trim());
     let jogada = null;
-    let usouCarta = false;
 
     const executarJogada = () => {
         if (jogada !== null) {
@@ -259,9 +254,10 @@ function turnoCPU() {
         return;
     }
 
+    let usouCarta = false;
     const chanceDeUsarCarta = { facil: 0.2, medio: 0.6, dificil: 1.0 };
     if (!gameState.cartaUsadaNoTurno && Math.random() < chanceDeUsarCarta[gameState.nivelDificuldade]) {
-        const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board, null, gameState.nivelDificuldade);
+        const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board);
         if (melhorJogadaDeCarta) {
             const { carta, cardIndex, targetCell } = melhorJogadaDeCarta;
             usouCarta = true;
@@ -276,7 +272,7 @@ function turnoCPU() {
                 case 'protecao':
                     cells[targetCell].classList.add('protected');
                     gameState.protecaoIndex = targetCell;
-                    gameState.protecaoTurnos = 2;
+                    gameState.protecaoExpiraPara = 'O';
                     break;
                 case 'forcar':
                     cells[targetCell].classList.add('forced-move');
@@ -293,14 +289,16 @@ function turnoCPU() {
     }
     
     const chanceDeJogadaAleatoria = { facil: 0.75, medio: 0, dificil: 0 };
-    let jogadaEstrategica = null;
-    if (!(Math.random() < chanceDeJogadaAleatoria[gameState.nivelDificuldade])) {
-        jogadaEstrategica = ia.analisarJogadaEstrategica('O', board) ?? ia.analisarJogadaEstrategica('X', board);
+    if (Math.random() < chanceDeJogadaAleatoria[gameState.nivelDificuldade]) {
+        jogada = null;
+    } else {
+        jogada = ia.analisarJogadaEstrategica('O', board) ?? ia.analisarJogadaEstrategica('X', board);
     }
 
-    if (jogadaEstrategica !== null && !cells[jogadaEstrategica].classList.contains('protected') && !cells[jogadaEstrategica].classList.contains('forced-move')) {
-        jogada = jogadaEstrategica;
-    } else {
+    if (jogada !== null && (cells[jogada].classList.contains('protected') || cells[jogada].classList.contains('forced-move'))) {
+        jogada = null;
+    }
+    if (jogada === null) {
         const livres = board.map((c, i) => !c && !cells[i].classList.contains('protected') && !cells[i].classList.contains('forced-move') ? i : null).filter(v => v !== null);
         if (livres.length > 0) {
             jogada = livres[Math.floor(Math.random() * livres.length)];
@@ -324,7 +322,7 @@ function resetGame() {
         protecaoMode: false,
         limparMode: false,
         protecaoIndex: null,
-        protecaoTurnos: 0,
+        protecaoExpiraPara: null,
         cartasJogador: [],
         cartasCPU: [],
         usada: { jogador: [false, false], cpu: [false, false] },
