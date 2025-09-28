@@ -107,8 +107,20 @@ function initBoard() {
     
     if (gameState.armadilhaAtivada) {
         gameState.trapCellIndex = Math.floor(Math.random() * 9);
-        const tiposDeArmadilha = ['limpar', 'embaralhar', 'nada'];
-        gameState.tipoDeArmadilha = tiposDeArmadilha[Math.floor(Math.random() * tiposDeArmadilha.length)];
+        const tiposDeArmadilha = [
+            { tipo: 'limpar', peso: 50 },
+            { tipo: 'embaralhar', peso: 35 },
+            { tipo: 'nada', peso: 15 }
+        ];
+        const totalPeso = tiposDeArmadilha.reduce((soma, armadilha) => soma + armadilha.peso, 0);
+        let numeroSorteado = Math.random() * totalPeso;
+        for (const armadilha of tiposDeArmadilha) {
+            if (numeroSorteado < armadilha.peso) {
+                gameState.tipoDeArmadilha = armadilha.tipo;
+                break;
+            }
+            numeroSorteado -= armadilha.peso;
+        }
     } else {
         gameState.trapCellIndex = null;
         gameState.tipoDeArmadilha = null;
@@ -176,7 +188,8 @@ function ativarArmadilhaLimparTabuleiro() {
             }
         });
         gameState.trapCellIndex = null;
-    }, 1000);
+        nextTurn();
+    }, 1200);
 }
 
 function ativarArmadilhaEmbaralhar() {
@@ -223,9 +236,10 @@ function ativarArmadilhaEmbaralhar() {
             endGame('Jogador X venceu!', vitoriaX);
         } else if (vitoriaO) {
             endGame('CPU O venceu!', vitoriaO);
+        } else {
+            nextTurn();
         }
-
-    }, 1000);
+    }, 1200);
 }
 
 window.handleCellClick = function(idx) {
@@ -294,6 +308,11 @@ window.handleCellClick = function(idx) {
     adicionarAoHistorico(`Jogador X jogou na casa #${idx + 1}.`);
     tocarSom('som-jogada');
 
+    const winLine = checkWin('X');
+    if (winLine) {
+        return endGame('Jogador X venceu!', winLine);
+    }
+
     if (eArmadilha) {
         cells[idx].classList.remove('trap-cell');
         if (gameState.tipoDeArmadilha === 'limpar') {
@@ -304,7 +323,9 @@ window.handleCellClick = function(idx) {
             adicionarAoHistorico("ARMADILHA! Era um blefe, nada aconteceu.");
             updateInfo("ARMADILHA! Era um blefe, nada aconteceu.");
             gameState.trapCellIndex = null;
+            nextTurn();
         }
+        return; 
     }
 
     if (gameState.modoDeJogo === 'magico' && gameState.bloqueioAlvo === 'jogador') {
@@ -394,7 +415,9 @@ function turnoCPU() {
                     adicionarAoHistorico("ARMADILHA! Era um blefe, nada aconteceu.");
                     updateInfo("ARMADILHA! Era um blefe, nada aconteceu.");
                     gameState.trapCellIndex = null;
+                    nextTurn();
                 }
+                return;
             }
         } else {
             adicionarAoHistorico(`CPU O não pôde jogar.`);
