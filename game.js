@@ -6,6 +6,9 @@ const gameState = {
     currentPlayer: 'X',
     primeiraPartida: true,
     modoDeJogo: 'magico',
+    armadilhaAtivada: true,
+    trapCellIndex: null,
+    tipoDeArmadilha: null,
     forcedMoveIndex: null,
     bloqueioMode: false,
     bloqueioAlvo: null,
@@ -28,7 +31,6 @@ window.resetPlacar = function() {
 };
 
 window.iniciarJogo = function(dificuldade, modo = 'magico') {
-    // A ordem aqui é crucial: primeiro reseta, depois define as novas configurações.
     resetGame();
     
     gameState.nivelDificuldade = dificuldade;
@@ -102,10 +104,26 @@ window.voltarMenu = function() {
 function initBoard() {
     const board = document.querySelector('.tabuleiro');
     board.innerHTML = '';
+    
+    if (gameState.armadilhaAtivada) {
+        gameState.trapCellIndex = Math.floor(Math.random() * 9);
+        const tiposDeArmadilha = ['limpar', 'embaralhar', 'nada'];
+        gameState.tipoDeArmadilha = tiposDeArmadilha[Math.floor(Math.random() * tiposDeArmadilha.length)];
+    } else {
+        gameState.trapCellIndex = null;
+        gameState.tipoDeArmadilha = null;
+    }
+    
     for (let i = 0; i < 9; i++) {
         const cell = document.createElement('div');
         cell.classList.add('cell');
         cell.setAttribute('data-index', i);
+        
+        if (i === gameState.trapCellIndex) {
+            cell.classList.add('trap-cell');
+            cell.innerHTML = '<span>?</span>';
+        }
+
         cell.addEventListener('click', () => handleCellClick(i));
         board.appendChild(cell);
     }
@@ -120,10 +138,6 @@ function checkWin(p) {
     return null;
 }
 
-function checkDraw() {
-    return Array.from(document.querySelectorAll('.cell')).every(c => c.textContent || c.classList.contains('protected'));
-}
-
 function endGame(msg, winLine = null) {
     if (msg.includes('venceu')) {
         gameState.placar[msg.includes('Jogador X') ? 'X' : 'O']++;
@@ -136,6 +150,7 @@ function endGame(msg, winLine = null) {
     updatePlacar(gameState.placar);
     showEndGame(msg, winLine);
     adicionarAoHistorico(`Fim de jogo: ${msg}`);
+    gameState.trapCellIndex = null;
     document.querySelector('.tabuleiro').style.pointerEvents = 'none';
 }
 
@@ -148,9 +163,76 @@ function verificarExpiracaoEfeitos() {
     }
 }
 
+function ativarArmadilhaLimparTabuleiro() {
+    adicionarAoHistorico("ARMADILHA! O tabuleiro foi limpo!");
+    updateInfo("ARMADILHA! O tabuleiro foi limpo!");
+    
+    setTimeout(() => {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach((cell, index) => {
+            if (index !== gameState.trapCellIndex) {
+                cell.innerHTML = '';
+                cell.classList.remove('player-X', 'player-O');
+            }
+        });
+        gameState.trapCellIndex = null;
+    }, 1000);
+}
+
+function ativarArmadilhaEmbaralhar() {
+    adicionarAoHistorico("ARMADILHA! As peças foram embaralhadas!");
+    updateInfo("ARMADILHA! As peças foram embaralhadas!");
+    
+    setTimeout(() => {
+        const cells = document.querySelectorAll('.cell');
+        let pecas = [];
+        let posicoes = [];
+
+        cells.forEach((cell, index) => {
+            if (cell.textContent.trim()) {
+                pecas.push(cell.textContent.trim());
+                posicoes.push(index);
+                cell.innerHTML = '';
+                cell.classList.remove('player-X', 'player-O');
+            }
+        });
+
+        for (let i = posicoes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [posicoes[i], posicoes[j]] = [posicoes[j], posicoes[i]];
+        }
+
+        pecas.forEach((peca, i) => {
+            const novaPosicao = posicoes[i];
+            cells[novaPosicao].innerHTML = `<span class="player-${peca}">${peca}</span>`;
+            cells[novaPosicao].classList.add(`player-${peca}`);
+        });
+
+        gameState.trapCellIndex = null;
+
+        const vitoriaX = checkWin('X');
+        const vitoriaO = checkWin('O');
+        
+        if (vitoriaX && vitoriaO) {
+            const vencedor = gameState.currentPlayer;
+            const msgVencedor = vencedor === 'X' ? 'Jogador X venceu!' : 'CPU O venceu!';
+            const linhaVencedora = vencedor === 'X' ? vitoriaX : vitoriaO;
+            adicionarAoHistorico(`Vitória dupla! ${msgVencedor} por ativar a armadilha!`);
+            endGame(msgVencedor, linhaVencedora);
+        } else if (vitoriaX) {
+            endGame('Jogador X venceu!', vitoriaX);
+        } else if (vitoriaO) {
+            endGame('CPU O venceu!', vitoriaO);
+        }
+
+    }, 1000);
+}
+
 window.handleCellClick = function(idx) {
     const cells = document.querySelectorAll('.cell');
     if (gameState.currentPlayer === 'O') return;
+
+    const eArmadilha = (idx === gameState.trapCellIndex);
 
     if (gameState.modoDeJogo === 'magico') {
         if (gameState.limparMode) {
@@ -201,13 +283,29 @@ window.handleCellClick = function(idx) {
         }
     }
     
-    if (cells[idx].textContent || cells[idx].classList.contains('protected')) {
+    if (cells[idx].textContent && !eArmadilha) {
+        return updateInfo('Casa já ocupada!');
+    }
+    if (cells[idx].classList.contains('protected')) {
         return updateInfo('Casa inválida!');
     }
 
     cells[idx].innerHTML = `<span class="player-X">X</span>`;
     adicionarAoHistorico(`Jogador X jogou na casa #${idx + 1}.`);
     tocarSom('som-jogada');
+
+    if (eArmadilha) {
+        cells[idx].classList.remove('trap-cell');
+        if (gameState.tipoDeArmadilha === 'limpar') {
+            ativarArmadilhaLimparTabuleiro();
+        } else if (gameState.tipoDeArmadilha === 'embaralhar') {
+            ativarArmadilhaEmbaralhar();
+        } else if (gameState.tipoDeArmadilha === 'nada') {
+            adicionarAoHistorico("ARMADILHA! Era um blefe, nada aconteceu.");
+            updateInfo("ARMADILHA! Era um blefe, nada aconteceu.");
+            gameState.trapCellIndex = null;
+        }
+    }
 
     if (gameState.modoDeJogo === 'magico' && gameState.bloqueioAlvo === 'jogador') {
         cells[gameState.forcedMoveIndex].classList.remove('forced-move');
@@ -225,8 +323,28 @@ function nextTurn() {
     if (winLine) {
         return endGame(player === 'X' ? 'Jogador X venceu!' : 'CPU O venceu!', winLine);
     }
-    if (checkDraw()) {
+    
+    const cells = document.querySelectorAll('.cell');
+    const celulasJogaveis = Array.from(cells).filter(cell => {
+        const isOccupied = cell.textContent.trim() !== '';
+        const isTrap = cell.classList.contains('trap-cell');
+        const isProtected = cell.classList.contains('protected');
+        return !(isOccupied && !isTrap) && !isProtected;
+    });
+
+    if (celulasJogaveis.length === 0) {
         return endGame('Empate!');
+    }
+    
+    if (celulasJogaveis.length === 1 && celulasJogaveis[0].classList.contains('trap-cell')) {
+        const proximoJogador = player === 'X' ? 'O' : 'X';
+        updateInfo(`Última jogada! ${proximoJogador} é forçado(a) a jogar na armadilha!`);
+        adicionarAoHistorico(`Jogo forçado na armadilha!`);
+        if (proximoJogador === 'X') {
+            gameState.bloqueioAlvo = 'jogador';
+            gameState.forcedMoveIndex = gameState.trapCellIndex;
+            cells[gameState.trapCellIndex].classList.add('forced-move');
+        }
     }
     
     gameState.currentPlayer = player === 'X' ? 'O' : 'X';
@@ -260,11 +378,42 @@ function turnoCPU() {
             cells[jogada].innerHTML = `<span class="player-O">O</span>`;
             tocarSom('som-jogada');
             adicionarAoHistorico(`CPU O jogou na casa #${jogada + 1}.`);
+
+            const winLineCPU = checkWin('O');
+            if (winLineCPU) {
+                return endGame('CPU O venceu!', winLineCPU);
+            }
+
+            if (jogada === gameState.trapCellIndex) {
+                cells[jogada].classList.remove('trap-cell');
+                if (gameState.tipoDeArmadilha === 'limpar') {
+                    ativarArmadilhaLimparTabuleiro();
+                } else if (gameState.tipoDeArmadilha === 'embaralhar') {
+                    ativarArmadilhaEmbaralhar();
+                } else if (gameState.tipoDeArmadilha === 'nada') {
+                    adicionarAoHistorico("ARMADILHA! Era um blefe, nada aconteceu.");
+                    updateInfo("ARMADILHA! Era um blefe, nada aconteceu.");
+                    gameState.trapCellIndex = null;
+                }
+            }
         } else {
             adicionarAoHistorico(`CPU O não pôde jogar.`);
         }
         nextTurn();
     };
+
+    const celulasJogaveis = Array.from(cells).filter(cell => {
+        const isOccupied = cell.textContent.trim() !== '';
+        const isTrap = cell.classList.contains('trap-cell');
+        const isProtected = cell.classList.contains('protected');
+        return !(isOccupied && !isTrap) && !isProtected;
+    });
+
+    if (celulasJogaveis.length === 1 && celulasJogaveis[0].classList.contains('trap-cell')) {
+        jogada = gameState.trapCellIndex;
+        executarJogada();
+        return;
+    }
 
     if (gameState.modoDeJogo === 'magico' && gameState.bloqueioAlvo === 'cpu' && gameState.forcedMoveIndex !== null) {
         jogada = gameState.forcedMoveIndex;
@@ -279,7 +428,7 @@ function turnoCPU() {
     if (gameState.modoDeJogo === 'magico') {
         const chanceDeUsarCarta = { facil: 0.2, medio: 0.6, dificil: 1.0 };
         if (!gameState.cartaUsadaNoTurno && Math.random() < chanceDeUsarCarta[gameState.nivelDificuldade]) {
-            const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board);
+            const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board, null, gameState.nivelDificuldade);
             if (melhorJogadaDeCarta) {
                 const { carta, cardIndex, targetCell } = melhorJogadaDeCarta;
                 usouCarta = true;
@@ -312,17 +461,22 @@ function turnoCPU() {
     }
     
     const chanceDeJogadaAleatoria = { facil: 0.75, medio: 0, dificil: 0 };
-    if (Math.random() < chanceDeJogadaAleatoria[gameState.nivelDificuldade]) {
-        jogada = null;
-    } else {
-        jogada = ia.analisarJogadaEstrategica('O', board) ?? ia.analisarJogadaEstrategica('X', board);
+    let jogadaEstrategica = (Math.random() < chanceDeJogadaAleatoria[gameState.nivelDificuldade]) ? null : (ia.analisarJogadaEstrategica('O', board) ?? ia.analisarJogadaEstrategica('X', board));
+
+    const ameaca = ia.encontrarJogadaVencedora('X', board);
+    if (ameaca !== null && jogadaEstrategica !== ameaca && gameState.trapCellIndex !== null && !cells[gameState.trapCellIndex].textContent) {
+        adicionarAoHistorico("CPU está em apuros e arrisca na armadilha!");
+        jogadaEstrategica = gameState.trapCellIndex;
     }
 
-    if (jogada !== null && (cells[jogada].classList.contains('protected') || cells[jogada].classList.contains('forced-move'))) {
+    if (jogadaEstrategica !== null && (cells[jogadaEstrategica].classList.contains('protected') || cells[jogadaEstrategica].classList.contains('forced-move'))) {
         jogada = null;
+    } else {
+        jogada = jogadaEstrategica;
     }
+    
     if (jogada === null) {
-        const livres = board.map((c, i) => !c && !cells[i].classList.contains('protected') && !cells[i].classList.contains('forced-move') ? i : null).filter(v => v !== null);
+        const livres = board.map((c, i) => !c && !cells[i].classList.contains('protected') && !cells[i].classList.contains('forced-move') && i !== gameState.trapCellIndex ? i : null).filter(v => v !== null);
         if (livres.length > 0) {
             jogada = livres[Math.floor(Math.random() * livres.length)];
         }
@@ -340,6 +494,9 @@ function resetGame() {
         currentPlayer: 'X',
         primeiraPartida: gameState.primeiraPartida,
         modoDeJogo: 'magico',
+        armadilhaAtivada: gameState.armadilhaAtivada,
+        trapCellIndex: null,
+        tipoDeArmadilha: null,
         forcedMoveIndex: null,
         bloqueioMode: false,
         bloqueioAlvo: null,

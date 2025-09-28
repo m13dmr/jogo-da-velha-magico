@@ -90,7 +90,7 @@ body {
 .button-group {
     display: flex;
     gap: 15px;
-    margin-top: 20px;
+    /* margin-top: 20px; */ /* Removido para controle mais fino no HTML */
 }
 
 .header {
@@ -395,11 +395,28 @@ body {
 .ajuda-conteudo, .config-conteudo {
     text-align: left;
     max-width: 600px;
+    width: 100%;
     background: var(--bg-color);
     padding: 20px;
     border-radius: 8px;
     max-height: 70vh;
     overflow-y: auto;
+}
+
+.config-opcao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--button-bg);
+    border-radius: 6px;
+    font-size: 1.1em;
+}
+
+.config-opcao input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
 }
 
 .ajuda-conteudo h2 {

@@ -4,7 +4,7 @@ console.log("cards.js carregado com sucesso!");
 
 const todasAsCartas = [
   {
-    nome: "Jogada Forçada", // Nome atualizado
+    nome: "Jogada Forçada",
     desc: "Escolha uma casa vazia para forçar a próxima jogada do oponente nela.",
     tipo: "forcar",
     raridade: "rara"
@@ -52,7 +52,7 @@ window.aplicarEfeitoCarta = function(carta, jogador) {
 function ativarEfeitoForcar(jogador) {
   if (jogador === 'X') {
     gameState.bloqueioMode = true;
-    gameState.bloqueioAlvo = 'cpu'; // <<<< CORREÇÃO CRÍTICA: Esta linha foi restaurada
+    gameState.bloqueioAlvo = 'cpu';
     updateInfo('Selecione uma casa VAZIA para forçar a jogada da CPU!');
     return true;
   }
@@ -88,7 +88,10 @@ function ativarEfeitoAnular(jogador) {
             
             updateInfo('Bloqueio anulado! Você está livre para jogar.');
             adicionarAoHistorico("Jogador usou Liberdade Mental!");
+            
+            // Força a atualização da UI para reabilitar os botões
             toggleAllPlayerButtons();
+            
             return true;
         } else {
             updateInfo('Você só pode usar esta carta quando sua jogada estiver forçada!');

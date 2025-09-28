@@ -35,7 +35,10 @@
         <div id="tela-config" class="screen" style="display: none;">
             <h1 class="title">Configurações</h1>
             <div class="config-conteudo">
-                <p>Em breve mais opções!</p>
+                <div class="config-opcao">
+                    <label for="toggle-armadilha">Ativar Casa Armadilha (?)</label>
+                    <input type="checkbox" id="toggle-armadilha" name="toggle-armadilha" checked>
+                </div>
             </div>
             <button id="btn-voltar-config" class="btn btn-primary">Voltar</button>
         </div>
@@ -48,6 +51,8 @@
                 <h2>Cartas Mágicas</h2>
                 <p>No início de cada partida, você e a CPU recebem 2 cartas mágicas. Você pode usar <strong>uma carta por turno</strong>. Usar uma carta de ação (como Proteção ou Limpeza) não consome sua jogada no tabuleiro.</p>
                 <p>Para usar uma carta, clique nela para virar e depois clique no botão "Usar Carta".</p>
+                <h2>Regras Especiais</h2>
+                <p><strong>Casa Armadilha:</strong> Se o efeito "Embaralhar Jogadas" resultar em uma vitória para ambos os jogadores ao mesmo tempo, a vitória é concedida ao jogador que ativou a armadilha.</p>
                 <h2>Lista de Cartas</h2>
                 <div id="ajuda-lista-cartas" class="ajuda-cartas-grid">
                 </div>

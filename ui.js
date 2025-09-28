@@ -35,7 +35,6 @@ window.initUI = function() {
         if (telas[nomeTela]) telas[nomeTela].style.display = 'flex';
     };
 
-    // Função para abrir a tela de dificuldade, configurando-a para o modo correto
     const abrirTelaDificuldade = (modo) => {
         const tituloDificuldade = document.querySelector('#tela-dificuldade .title');
         if (modo === 'magico') {
@@ -43,27 +42,29 @@ window.initUI = function() {
         } else {
             tituloDificuldade.textContent = 'Modo Clássico';
         }
-        // Armazena o modo escolhido na própria tela para referência futura
         telas.telaDificuldade.dataset.modo = modo;
         mostrarTela('telaDificuldade');
     };
 
-    // --- LÓGICA DOS MENUS ATUALIZADA ---
     document.getElementById('btn-iniciar-magico').addEventListener('click', () => abrirTelaDificuldade('magico'));
     document.getElementById('btn-iniciar-classico').addEventListener('click', () => abrirTelaDificuldade('classico'));
-    
     document.getElementById('btn-voltar-dificuldade').addEventListener('click', () => mostrarTela('menuInicial'));
+    
     document.getElementById('btn-config').addEventListener('click', () => mostrarTela('telaConfig'));
     document.getElementById('btn-voltar-config').addEventListener('click', () => mostrarTela('menuInicial'));
     
+    document.getElementById('toggle-armadilha').addEventListener('change', (e) => {
+        gameState.armadilhaAtivada = e.target.checked;
+        console.log(`Casa armadilha ativada: ${gameState.armadilhaAtivada}`);
+    });
+
     document.querySelectorAll('#tela-dificuldade .button-group button').forEach(button => {
         button.addEventListener('click', (e) => {
             const dificuldade = e.target.getAttribute('data-dificuldade');
-            const modo = telas.telaDificuldade.dataset.modo || 'magico'; // Pega o modo armazenado
+            const modo = telas.telaDificuldade.dataset.modo || 'magico';
             if (window.iniciarJogo) iniciarJogo(dificuldade, modo);
         });
     });
-    // --- FIM DA ATUALIZAÇÃO ---
 
     document.getElementById('btn-ajuda').addEventListener('click', () => mostrarTela('telaAjuda'));
     document.getElementById('btn-voltar-ajuda').addEventListener('click', () => mostrarTela('menuInicial'));
@@ -85,16 +86,19 @@ window.initUI = function() {
         });
 
         document.getElementById(`btnUsarCarta${cardIndex}`).addEventListener('click', () => {
+            const carta = gameState.cartasJogador[arrayIndex];
+            
             if (gameState.usada.jogador[arrayIndex]) return updateInfo('Você já usou esta carta!');
-            if (gameState.cartaUsadaNoTurno) return updateInfo('Você só pode usar uma carta por turno!');
-            if (gameState.bloqueioAlvo === 'jogador') return updateInfo('Você não pode usar cartas com a jogada forçada!');
+            if (gameState.cartaUsadaNoTurno && carta.tipo !== 'anular') return updateInfo('Você só pode usar uma carta por turno!');
             if (gameState.currentPlayer !== 'X') return updateInfo('Não é sua vez!');
             
-            const carta = gameState.cartasJogador[arrayIndex];
+            // A verificação de condição agora é feita pela própria função da carta
             if (aplicarEfeitoCarta(carta, 'X')) {
                 tocarSom('som-carta');
                 gameState.usada.jogador[arrayIndex] = true;
-                if (carta.tipo !== 'anular') gameState.cartaUsadaNoTurno = true;
+                if (carta.tipo !== 'anular') {
+                    gameState.cartaUsadaNoTurno = true;
+                }
                 toggleAllPlayerButtons();
             }
         });
