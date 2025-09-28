@@ -1,25 +1,28 @@
-# Jogo da Velha Mágico (v1.0)
+# Jogo da Velha Mágico (v2.0)
 
-Bem-vindo ao Jogo da Velha Mágico! Uma releitura estratégica do clássico Jogo da Velha, onde cada jogador possui cartas com habilidades únicas capazes de virar o jogo a qualquer momento. Jogue contra uma IA com múltiplos níveis de dificuldade e teste sua capacidade de prever os movimentos do oponente.
+Bem-vindo ao Jogo da Velha Mágico! Uma releitura estratégica do clássico Jogo da Velha, onde cada jogador possui cartas com habilidades únicas, e o próprio tabuleiro pode conter surpresas. Jogue contra uma IA com múltiplos níveis de dificuldade e teste sua capacidade de adaptação e estratégia.
 
-## Funcionalidades
+## Funcionalidades Principais
 
-- **Jogo Clássico, Novas Estratégias:** As regras que você já conhece, potencializadas por um sistema de cartas mágicas.
-- **IA com Dificuldade Ajustável:** Escolha entre os modos Fácil, Médio e Difícil para uma experiência casual ou um desafio real.
-- **Sistema de Cartas Único:**
+- **Dois Modos de Jogo:** Escolha entre o **Modo Mágico**, com cartas e armadilhas, ou o **Modo Clássico**, para uma partida tradicional.
+- **IA com Dificuldade Ajustável:** Desafie a CPU nos modos **Fácil**, **Médio** ou **Difícil**. A dificuldade afeta tanto a qualidade das jogadas quanto a estratégia de uso das cartas.
+- **Sistema de Cartas Único (Modo Mágico):**
     - 4 tipos de cartas com efeitos distintos (Forçar, Proteger, Limpar, Anular).
     - 2 cartas por jogador a cada partida, com limite de 1 uso por turno.
-- **Interface Completa:** Inclui placar, histórico de jogadas, tela de ajuda e efeitos sonoros para uma experiência imersiva.
+- **Casa Armadilha Opcional:** Ative no menu de Configurações para que uma casa aleatória (?) apareça no tabuleiro com um de três efeitos surpresa:
+    1.  **Limpar Tabuleiro:** Remove todas as outras peças do jogo.
+    2.  **Embaralhar Jogadas:** Embaralha a posição de todas as peças existentes.
+    3.  **Blefe:** Não faz nada.
+- **Interface Completa:** Inclui placar, histórico de jogadas detalhado, tela de ajuda, menu de configurações e efeitos sonoros para uma experiência imersiva.
 
 ## Como Jogar
 
-1.  **Menu Inicial:** Escolha um nível de dificuldade para começar. Você também pode acessar a tela "Como Jogar?" para ver as regras e a lista de cartas.
-2.  **O Jogo:** O objetivo é conseguir 3 dos seus símbolos ('X' ou 'O') em linha. A cada turno, você pode primeiro usar uma carta e depois fazer sua jogada no tabuleiro.
+1.  **Menu Inicial:** Escolha entre "Modo Mágico" ou "Modo Clássico". Você também pode acessar a tela "Como Jogar?" ou "Configurações".
+2.  **O Jogo:** O objetivo é conseguir 3 dos seus símbolos ('X' ou 'O') em linha. A cada turno, você pode primeiro usar uma carta (no Modo Mágico) e depois fazer sua jogada no tabuleiro.
 3.  **Usando Cartas:**
-    - Clique em uma de suas cartas viradas para baixo para revelar seu efeito.
-    - Após revelada, o botão "Usar Carta" aparecerá. Clique nele para ativar o efeito.
-    - Siga as instruções na tela (ex: "Escolha uma peça para remover").
-    - Após o efeito da carta, faça sua jogada normal no tabuleiro.
+    - Clique em uma de suas cartas para revelar seu efeito.
+    - Clique no botão "Usar Carta" que aparecerá.
+    - Siga as instruções na tela e, em seguida, faça sua jogada normal no tabuleiro.
 
 ## Lista de Cartas
 
@@ -32,7 +35,7 @@ Bem-vindo ao Jogo da Velha Mágico! Uma releitura estratégica do clássico Jogo
 
 ## Como Executar Localmente
 
-Para jogar, basta abrir o arquivo `index.html` em qualquer navegador de internet moderno (como Chrome, Firefox, Edge, etc.).
+Para jogar, basta abrir o arquivo `index.html` em qualquer navegador de internet moderno (Chrome, Firefox, Edge, etc.).
 
 ---
 *Projeto desenvolvido em colaboração com a IA do Google.*
