@@ -279,6 +279,7 @@ window.handleCellClick = function(idx) {
             if (!cells[idx].textContent) {
                 cells[idx].classList.add('forced-move');
                 gameState.forcedMoveIndex = idx;
+                gameState.bloqueioAlvo = 'cpu';
                 gameState.bloqueioMode = false;
                 updateInfo('Casa forçada selecionada. Agora, faça a sua jogada.');
                 adicionarAoHistorico(`Jogador usou Jogada Forçada na casa #${idx + 1}.`);
@@ -354,19 +355,11 @@ function nextTurn() {
     });
 
     if (celulasJogaveis.length === 0) {
+        gameState.placar.E++; // Incrementa o empate
         return endGame('Empate!');
     }
     
-    if (celulasJogaveis.length === 1 && celulasJogaveis[0].classList.contains('trap-cell')) {
-        const proximoJogador = player === 'X' ? 'O' : 'X';
-        updateInfo(`Última jogada! ${proximoJogador} é forçado(a) a jogar na armadilha!`);
-        adicionarAoHistorico(`Jogo forçado na armadilha!`);
-        if (proximoJogador === 'X') {
-            gameState.bloqueioAlvo = 'jogador';
-            gameState.forcedMoveIndex = gameState.trapCellIndex;
-            cells[gameState.trapCellIndex].classList.add('forced-move');
-        }
-    }
+    // O BLOCO DE CÓDIGO QUE FORÇAVA A JOGADA NA ARMADILHA FOI REMOVIDO DAQUI.
     
     gameState.currentPlayer = player === 'X' ? 'O' : 'X';
     gameState.cartaUsadaNoTurno = false;
@@ -425,33 +418,17 @@ function turnoCPU() {
         nextTurn();
     };
 
-    const celulasJogaveis = Array.from(cells).filter(cell => {
-        const isOccupied = cell.textContent.trim() !== '';
-        const isTrap = cell.classList.contains('trap-cell');
-        const isProtected = cell.classList.contains('protected');
-        return !(isOccupied && !isTrap) && !isProtected;
-    });
-
-    if (celulasJogaveis.length === 1 && celulasJogaveis[0].classList.contains('trap-cell')) {
-        jogada = gameState.trapCellIndex;
-        executarJogada();
-        return;
-    }
-
-    if (gameState.modoDeJogo === 'magico' && gameState.bloqueioAlvo === 'cpu' && gameState.forcedMoveIndex !== null) {
-        jogada = gameState.forcedMoveIndex;
-        cells[jogada].classList.remove('forced-move');
-        gameState.forcedMoveIndex = null;
-        gameState.bloqueioAlvo = null;
-        executarJogada();
-        return;
-    }
-
     let usouCarta = false;
     if (gameState.modoDeJogo === 'magico') {
-        const chanceDeUsarCarta = { facil: 0.2, medio: 0.6, dificil: 1.0 };
+        const chanceDeUsarCarta = { facil: 0.2, medio: 0.6, dificil: 1.0, extremo: 1.0 };
         if (!gameState.cartaUsadaNoTurno && Math.random() < chanceDeUsarCarta[gameState.nivelDificuldade]) {
-            const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board, null, gameState.nivelDificuldade);
+            
+            const estadoDoJogoParaIA = {
+                bloqueioAlvo: gameState.bloqueioAlvo,
+                jogadaPlanejada: null
+            };
+            const melhorJogadaDeCarta = ia.decidirMelhorCarta(gameState.cartasCPU, gameState.usada.cpu, board, estadoDoJogoParaIA, gameState.nivelDificuldade);
+
             if (melhorJogadaDeCarta) {
                 const { carta, cardIndex, targetCell } = melhorJogadaDeCarta;
                 usouCarta = true;
@@ -466,12 +443,20 @@ function turnoCPU() {
                     case 'protecao':
                         cells[targetCell].classList.add('protected');
                         gameState.protecaoIndex = targetCell;
-                        gameState.protecaoExpiraPara = 'O';
+                        gameState.protecaoExpiraPara = gameState.currentPlayer;
                         break;
                     case 'forcar':
                         cells[targetCell].classList.add('forced-move');
                         gameState.bloqueioAlvo = 'jogador';
                         gameState.forcedMoveIndex = targetCell;
+                        break;
+                    case 'anular':
+                        if (gameState.forcedMoveIndex !== null) {
+                            cells[gameState.forcedMoveIndex].classList.remove('forced-move');
+                        }
+                        gameState.forcedMoveIndex = null;
+                        gameState.bloqueioAlvo = null;
+                        adicionarAoHistorico("CPU anulou a jogada forçada!");
                         break;
                 }
                 
@@ -482,9 +467,18 @@ function turnoCPU() {
             }
         }
     }
+
+    if (gameState.bloqueioAlvo === 'cpu' && gameState.forcedMoveIndex !== null) {
+        jogada = gameState.forcedMoveIndex;
+        cells[jogada].classList.remove('forced-move');
+        gameState.forcedMoveIndex = null;
+        gameState.bloqueioAlvo = null;
+        executarJogada();
+        return;
+    }
     
-    const chanceDeJogadaAleatoria = { facil: 0.75, medio: 0, dificil: 0 };
-    let jogadaEstrategica = (Math.random() < chanceDeJogadaAleatoria[gameState.nivelDificuldade]) ? null : (ia.analisarJogadaEstrategica('O', board) ?? ia.analisarJogadaEstrategica('X', board));
+    const chanceDeJogadaAleatoria = { facil: 0.75, medio: 0, dificil: 0, extremo: 0 };
+    let jogadaEstrategica = (Math.random() < chanceDeJogadaAleatoria[gameState.nivelDificuldade]) ? null : ia.analisarJogadaEstrategica('O', board, gameState.nivelDificuldade);
 
     const ameaca = ia.encontrarJogadaVencedora('X', board);
     if (ameaca !== null && jogadaEstrategica !== ameaca && gameState.trapCellIndex !== null && !cells[gameState.trapCellIndex].textContent) {
@@ -499,9 +493,41 @@ function turnoCPU() {
     }
     
     if (jogada === null) {
-        const livres = board.map((c, i) => !c && !cells[i].classList.contains('protected') && !cells[i].classList.contains('forced-move') && i !== gameState.trapCellIndex ? i : null).filter(v => v !== null);
-        if (livres.length > 0) {
-            jogada = livres[Math.floor(Math.random() * livres.length)];
+        if (gameState.nivelDificuldade === 'extremo') {
+            const isProtected = (index) => cells[index].classList.contains('protected');
+            const corners = [0, 2, 6, 8];
+            const boardState = Array.from(cells).map(c => c.textContent.trim());
+
+            if (boardState[4] === '' && !isProtected(4)) {
+                jogada = 4;
+            } else {
+                let oppositeCornerMove = null;
+                if (boardState[0] === 'X' && boardState[8] === '' && !isProtected(8)) oppositeCornerMove = 8;
+                else if (boardState[2] === 'X' && boardState[6] === '' && !isProtected(6)) oppositeCornerMove = 6;
+                else if (boardState[6] === 'X' && boardState[2] === '' && !isProtected(2)) oppositeCornerMove = 2;
+                else if (boardState[8] === 'X' && boardState[0] === '' && !isProtected(0)) oppositeCornerMove = 0;
+                
+                if (oppositeCornerMove !== null) {
+                    jogada = oppositeCornerMove;
+                } else {
+                    const emptyCorners = corners.filter(c => boardState[c] === '' && !isProtected(c));
+                    if (emptyCorners.length > 0) {
+                        jogada = emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
+                    } else {
+                        const emptySides = [1, 3, 5, 7].filter(s => boardState[s] === '' && !isProtected(s));
+                        if (emptySides.length > 0) {
+                           jogada = emptySides[Math.floor(Math.random() * emptySides.length)];
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (jogada === null) {
+            const livres = board.map((c, i) => !c && !cells[i].classList.contains('protected') && !cells[i].classList.contains('forced-move') && i !== gameState.trapCellIndex ? i : null).filter(v => v !== null);
+            if (livres.length > 0) {
+                jogada = livres[Math.floor(Math.random() * livres.length)];
+            }
         }
     }
     
